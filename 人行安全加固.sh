@@ -30,7 +30,7 @@ echo -e "\t19. 配置系统增强安全功能，防止运行的程序出现堆�
 echo -e "\t20. 确认操作系统用户和数据库用户均具有口令"
 echo -e "\t21. 使用ssh关闭telnet"
 echo -e "\t22. 使用telnet时不显示系统的信息和版本"
-echo -e "x. 退出"
+echo -e "\tx. 退出"
 
 # 循环读取用户选择并执行相应操作
 while true; do
@@ -106,7 +106,7 @@ while true; do
         grep "^ocredit" /etc/security/pwquality.conf
         ;;
       7)
-       
+       echo "========== 不能使用前五次用过的密码 ============"
        if grep -q "use_authtok remember=5" /etc/pam.d/system-auth; 
         then
             echo "配置已存在/etc/pam.d/system-auth文件中"
