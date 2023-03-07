@@ -1,4 +1,13 @@
 #!/bin/bash
+##---------- Author : SKYRIM D/X -----------------------------------------------------------------##
+##---------- Github page : https://github.com/alexdu828/linux-shell-script-------------------##
+##---------- Purpose : System security reinforcement script.---------------------------------##
+##---------- Tested on : CentOS--------------------------------------------------------------##
+##---------- Updated version : v0.2 (Updated on  2023年03月07) -------------------------------##
+##-----NOTE: This script requires root privileges, otherwise one could run the script -------##
+##---- as a sudo user who got root privileges. ----------------------------------------------##
+##----------- "sudo /bin/bash <ScriptName>" -------------------------------------------------##
+
 # 定义字体输出色彩变量
 GREEN_COLOR='\E[1;32m'
 BLUE_COLOR='\E[1;34m'
@@ -20,12 +29,11 @@ else
 fi
 
 echo -e "\t\t\t========== 配置: 密码失效提前警告期限为10天 ============"
-sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE 10/g' /etc/login.defs
-sed -n '/^PASS_WARN_AGE/p' /etc/login.defs
-if grep -q "PASS_MAX_DAYS 90" /etc/login.defs; then
+if grep -q "PASS_WARN_AGE 10" /etc/login.defs; then
   echo -e "${BLUE_COLOR}配置:密码失效提前警告期限为10天 已存在/etc/login.defs文件中${BLUE_COLOR}"
 else
-  sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS 90/g' /etc/login.defs
+  sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE 10/g' /etc/login.defs
+  echo "PASS_WARN_AGE 10" >>/etc/login.defs
   echo -e "${GREEN_COLOR} 配置:密码失效提前警告期限为10天 =====> 配置完成 ${GREEN_COLOR}"
 fi
 
@@ -36,7 +44,8 @@ else
   # 在/etc/pam.d/system-auth中获取最后一个 'auth' 字符串的行号
   last_auth_line=$(grep -n "auth " /etc/pam.d/system-auth | tail -1 | cut -d ':' -f 1)
   # 在最后一个 'auth' 字符串之后的下一行添加 'auth required pam_tally.so deny = 5 unlock_time = 30'
-  sed -i "${last_auth_line}a auth required pam_tally.so deny=5 unlock_time=30" /etc/pam.d/system-auth
+  sed -i "${last_auth_line}a account     required      pam_tally2.so" /etc/pam.d/system-auth
+  sed -i "${last_auth_line}a auth   required     pam_tally.so deny=5 unlock_time=30" /etc/pam.d/system-auth
   echo -e "${GREEN_COLOR} 配置: 密码口令最多失败次数设为5次,锁定时间为30s 已经添加 to /etc/pam.d/system-auth =====> 配置完成 ${GREEN_COLOR}"
 fi
 
@@ -87,7 +96,7 @@ else
 fi
 
 echo -e "\t\t\t========== 禁止root用户直接登陆 ============"
-if grep -q "PermitRootLogin yes" /etc/ssh/sshd_config; then
+if grep -q "^PermitRootLogin yes" /etc/ssh/sshd_config; then
   echo -e "${BLUE_COLOR}配置:禁止root用户直接登陆 已存在/etc/ssh/sshd_config文件中${BLUE_COLOR}"
 else
   sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/g' /etc/ssh/sshd_config
@@ -96,7 +105,7 @@ fi
 
 echo -e "\t\t\t========== 用户登陆无操作时,超过300秒需重新登陆 ============"
 if grep -q "TMOUT=300" /etc/profile; then
-  echo ${BLUE_COLOR}"配置:用户登陆无操作时,超过300秒需重新登陆 已存在/etc/profile文件中${BLUE_COLOR}"
+  echo "${BLUE_COLOR}配置:用户登陆无操作时,超过300秒需重新登陆 已存在/etc/profile文件中${BLUE_COLOR}"
 else
   sed -i '$a TMOUT=300\nreadonly TMOUT\nexport TMOUT' /etc/profile
   echo -e "${GREEN_COLOR} 配置:用户登陆无操作时,超过300秒需重新登陆 已经添加 to /etc/profile =====> 配置完成 ${GREEN_COLOR} "
@@ -161,140 +170,127 @@ fi
 
 echo -e "\t\t\t========== 配置某些关键目录其所需的最小权限;  ============"
 echo -e "\t\t\t========== 重点要求passwd、group、crontabs、xhost文件权限  ============"
-#检查/etc/passwd 最小权限 
-if [ $(stat -c %!a(MISSING) /etc/passwd) = "644" ] 
-then 
-  echo -e "${BLUE_COLOR}/etc/passwd 权限正确${BLUE_COLOR}" 
-else 
-  chmod 644 /etc/passwd 
-  echo -e "${GREEN_COLOR}  /etc/passwd 权限设置为 644 ${GREEN_COLOR}  =====> 配置完成" 
+#检查/etc/passwd 最小权限
+if [ $(stat -c "%a" /etc/passwd) -eq 644 ]; then
+  echo -e "${BLUE_COLOR}/etc/passwd 权限正确${BLUE_COLOR}"
+else
+  chmod 644 /etc/passwd
+  echo -e "${GREEN_COLOR}  /etc/passwd 权限设置为 644 ${GREEN_COLOR}  =====> 配置完成"
 fi
-#检查//etc/shadow最小权限 
-if [ $(stat -c %!a(MISSING) /etc/shadow) = "600" ] 
-then 
-  echo -e "${BLUE_COLOR}/etc/shadow 权限正确${BLUE_COLOR}" 
-else 
-  chmod 600 /etc/shadow 
-  echo -e "${GREEN_COLOR}  /etc/shadow 权限设置为 600 ${GREEN_COLOR}  =====> 配置完成" 
+#检查/etc/shadow最小权限
+if [ $(stat -c "%a" /etc/shadow) -eq 600 ]; then
+  echo -e "${BLUE_COLOR}/etc/shadow 权限正确${BLUE_COLOR}"
+else
+  chmod 600 /etc/shadow
+  echo -e "${GREEN_COLOR}  /etc/shadow 权限设置为 600 ${GREEN_COLOR}  =====> 配置完成"
 fi
-#检查/etc/group 最小权限 
-if [ $(stat -c %!a(MISSING) /etc/passwd) = "644" ] 
-then 
-  echo -e "${BLUE_COLOR}/etc/group 权限正确${BLUE_COLOR}" 
-else 
-  chmod 644 /etc/group 
-  echo -e "${GREEN_COLOR}  /etc/group 权限设置为 644 ${GREEN_COLOR}  =====> 配置完成" 
+#检查/etc/group 最小权限
+if [ $(stat -c "%a" /etc/group) -eq 644 ]; then
+  echo -e "${BLUE_COLOR}/etc/group 权限正确${BLUE_COLOR}"
+else
+  chmod 644 /etc/group
+  echo -e "${GREEN_COLOR}  /etc/group 权限设置为 644 ${GREEN_COLOR}  =====> 配置完成"
 fi
 
 echo -e "\t\t\t========== 配置日志文件权限,控制对日志文件读取、修改和删除等操作  ============"
 #检查/var/log/messages权限
-if [ $(stat -c %!a(MISSING) /var/log/messages) = "600" ] 
-then 
-  echo -e "${BLUE_COLOR}/var/log/messages 权限正确${BLUE_COLOR}" 
-else 
-  chmod 600 /var/log/messages 
-  echo -e "${GREEN_COLOR}  /var/log/messages 权限设置为 600 ${GREEN_COLOR}  =====> 配置完成" 
+if [ $(stat -c "%a" /var/log/messages) -eq 600 ]; then
+  echo -e "${BLUE_COLOR}/var/log/messages 权限正确${BLUE_COLOR}"
+else
+  chmod 600 /var/log/messages
+  echo -e "${GREEN_COLOR}  /var/log/messages 权限设置为 600 ${GREEN_COLOR}  =====> 配置完成"
 fi
 #检查/var/log/secure 权限
-if [ $(stat -c %!a(MISSING) /var/log/secure ) = "600" ] 
-then 
-  echo -e "${BLUE_COLOR}/var/log/secure  权限正确${BLUE_COLOR}" 
-else 
-  chmod 600 /var/log/secure  
-  echo -e "${GREEN_COLOR}  /var/log/secure  权限设置为 600 ${GREEN_COLOR}  =====> 配置完成" 
+if [ $(stat -c "%a" /var/log/secure) -eq 600 ]; then
+  echo -e "${BLUE_COLOR}/var/log/secure  权限正确${BLUE_COLOR}"
+else
+  chmod 600 /var/log/secure
+  echo -e "${GREEN_COLOR}  /var/log/secure  权限设置为 600 ${GREEN_COLOR}  =====> 配置完成"
 fi
 #检查/var/run/utmp权限
-if [ $(stat -c %!a(MISSING) /var/run/utmp ) = "644" ] 
-then 
-  echo -e "${BLUE_COLOR}/var/run/utmp  权限正确${BLUE_COLOR}" 
-else 
-  chmod 644 /var/run/utmp  
-  echo -e "${GREEN_COLOR}  /var/run/utmp  权限设置为 644 ${GREEN_COLOR}  =====> 配置完成" 
+if [ $(stat -c "%a" /var/run/utmp) -eq 644 ]; then
+  echo -e "${BLUE_COLOR}/var/run/utmp  权限正确${BLUE_COLOR}"
+else
+  chmod 644 /var/run/utmp
+  echo -e "${GREEN_COLOR}  /var/run/utmp  权限设置为 644 ${GREEN_COLOR}  =====> 配置完成"
 fi
 #检查/ /var/log/wtpm权限
-if [ $(stat -c %!a(MISSING) /var/log/wtpm ) = "644" ] 
-then 
-  echo -e "${BLUE_COLOR}/var/log/wtpm  权限正确${BLUE_COLOR}" 
-else 
-  chmod 644 / /var/log/wtpm  
-  echo -e "${GREEN_COLOR} /var/log/wtpm  权限设置为 644  =====> 配置完成${GREEN_COLOR} " 
+if [ $(stat -c "%a" /var/log/wtpm) -eq 644 ]; then
+  echo -e "${BLUE_COLOR}/var/log/wtpm  权限正确${BLUE_COLOR}"
+else
+  chmod 644 / /var/log/wtpm
+  echo -e "${GREEN_COLOR} /var/log/wtpm  权限设置为 644  =====> 配置完成${GREEN_COLOR} "
 fi
 
 echo -e "\t\t\t========== 禁止在控制台直接按ctl-alt-del重新启动计算机 ============"
-if [ -f /usr/lib/systemd/system/ctrl-alt-del.target ]; 
-then 
-  rm -fr /usr/lib/systemd/system/ctrl-alt-del.target 
-  echo -e "${GREEN_COLOR} 禁止在控制台直接按ctl-alt-del重新启动计算机   =====> 配置完成${GREEN_COLOR} " 
+if [ -f /usr/lib/systemd/system/ctrl-alt-del.target ]; then
+  rm -fr /usr/lib/systemd/system/ctrl-alt-del.target
+  echo -e "${GREEN_COLOR} 禁止在控制台直接按ctl-alt-del重新启动计算机   =====> 配置完成${GREEN_COLOR} "
 else
-  echo -e "${BLUE_COLOR}禁止在控制台直接按ctl-alt-del重新启动计算机已经配置${BLUE_COLOR}" 
+  echo -e "${BLUE_COLOR}禁止在控制台直接按ctl-alt-del重新启动计算机已经配置${BLUE_COLOR}"
 fi
 
 echo -e "\t\t\t========== 配置ntp,保证时间同步 ============"
 # 检查是否安装了NTP
 if ! rpm -qa | grep -q "^ntp-"; then
-    echo "NTP未安装,开始安装..."
-    yum install -y ntp
+  echo "NTP未安装,开始安装..."
+  yum install -y ntp
 fi
 
 # 检查NTP配置文件是否存在
 if [ ! -f /etc/ntp.conf ]; then
-    echo "NTP配置文件不存在,创建配置文件..."
-    echo "server 11.201.1.140 iburst" > /etc/ntp.conf
+  echo "NTP配置文件不存在,创建配置文件..."
+  echo "server 11.201.1.140 iburst" >/etc/ntp.conf
 else
-    # 检查NTP配置文件中是否指向了NTP服务器
-    if grep -q "^server 11.201.1.140" /etc/ntp.conf; then
-        echo "NTP配置文件中已经指向NTP服务器,无需更新配置."
+  # 检查NTP配置文件中是否指向了NTP服务器
+  if grep -q "^server 11.201.1.140" /etc/ntp.conf; then
+    echo "NTP配置文件中已经指向NTP服务器,无需更新配置."
+  else
+    # 检查NTP配置文件中是否存在其他Server配置
+    if grep -q "^server" /etc/ntp.conf; then
+      echo "NTP配置文件中存在错误的Server配置,禁用并添加正确的配置..."
+      sed -i '/^server/d' /etc/ntp.conf
+      echo "server 11.201.1.140 iburst" >>/etc/ntp.conf
     else
-        # 检查NTP配置文件中是否存在其他Server配置
-        if grep -q "^server" /etc/ntp.conf; then
-            echo "NTP配置文件中存在错误的Server配置,禁用并添加正确的配置..."
-            sed -i '/^server/d' /etc/ntp.conf
-            echo "server 11.201.1.140 iburst" >> /etc/ntp.conf
-        else
-            echo "NTP配置文件中未指向NTP服务器,添加配置..."
-            echo "server 11.201.1.140 iburst" >> /etc/ntp.conf
-        fi
+      echo "NTP配置文件中未指向NTP服务器,添加配置..."
+      echo "server 11.201.1.140 iburst" >>/etc/ntp.conf
     fi
+  fi
 fi
 
-(crontab -l ; echo "30 * * * * /usr/sbin/ntpdata -u 11.201.1.140 >/dev/null 2>&1") | crontab -
+(
+  crontab -l
+  echo "30 * * * * /usr/sbin/ntpdata -u 11.201.1.140 >/dev/null 2>&1"
+) | crontab -
 
 # 检查命令是否成功添加到crontab
-if crontab -l | grep -q /usr/sbin/ntpdata; 
-then
+if crontab -l | grep -q /usr/sbin/ntpdata; then
   echo "配置已存在于crontab."
 else
-  (crontab -l ; echo "30 * * * * /usr/sbin/ntpdata -u 11.201.1.140 >/dev/null 2>&1") | crontab -
-  echo -e "${BLUE_COLOR}NTP crontab配置${GREEN_COLOR}  =====> 配置完成" 
+  (
+    crontab -l
+    echo "30 * * * * /usr/sbin/ntpdata -u 11.201.1.140 >/dev/null 2>&1"
+  ) | crontab -
+  echo -e "${BLUE_COLOR}NTP crontab配置${GREEN_COLOR}  =====> 配置完成"
 fi
 
 echo -e "\t\t\t========== 设置登录前后警告信息 ============"
-if [ -f /etc/ssh_banner ]; 
-then 
-  content=$(cat /etc/motd) 
-  if [[ $content == "========== Authorized only. All activity will be monitored and reported ============" ]] 
-  then 
-    echo "/etc/motd配置已经存在" 
+if [ -f /etc/motd ]; then
+  content=$(cat /etc/motd)
+  if [[ $content == "========== Authorized only. All activity will be monitored and reported ============" ]]; then
+    echo "/etc/motd配置已经存在"
   else
-    echo "/etc/motd配置不存在" 
-    echo "========== Authorized only. All activity will be monitored and reported ============">>/etc/motd
-  fi 
-else 
-  echo "/etc/ssh_banner文件不存在" 
-  touch /etc/ssh_banner 
-  chown bin:bin /etc/ssh_banner 
-  chmod 644 /etc/ssh_banner
-  echo " Authorized only. All activity will be monitored and reported " >> /etc/ssh_banne
-  echo "Banner /etc/ssh_banner">>/etc/ssh/sshd_config
-  systemctl restart sshd
-  echo -e "${BLUE_COLOR}设置登录前后警告信息${GREEN_COLOR}  =====> 配置完成" 
+    echo "/etc/motd配置不存在"
+    echo "========== Authorized only. All activity will be monitored and reported ============" >>/etc/motd
+    echo -e "${BLUE_COLOR}设置登录前后警告信息${GREEN_COLOR}  =====> 配置完成"
+  fi
 fi
 
 echo -e "\t\t\t========== 配置系统增强安全功能,防止运行的程序出现堆栈缓冲溢出问题   ============"
 if grep -q "hard core 0" /etc/security/limits.conf; then
   echo -e "${BLUE_COLOR}配置已存在/etc/security/limits.conf文件中${BLUE_COLOR}"
 else
-  echo "*  hard core 0   ">>/etc/security/limits.conf
+  echo "*  hard core 0   " >>/etc/security/limits.conf
   echo -e "${GREEN_COLOR} 配置已经添加 to /etc/security/limits.conf =====> 配置完成 ${GREEN_COLOR} "
 fi
 
@@ -304,12 +300,11 @@ USERS=$(cut -d: -f1 /etc/passwd)
 
 # 循环检查每个用户是否具有口令
 for USER in $USERS; do
-    PASSWORD_STATUS=$(passwd -S $USER | awk '{print $2}')
-    if [ "$PASSWORD_STATUS" != "P" ]; then
-        echo "用户 $USER 没有口令."
-        exit 1
-    fi
+  PASSWORD_STATUS=$(passwd -S $USER | awk '{print $2}')
+  if [ "$PASSWORD_STATUS" != "P" ]; then
+    echo "用户 $USER 没有口令."
+    exit 1
+  fi
 done
-echo -e "${BLUE_COLOR}操作系统用户用户均具有口令${GREEN_COLOR}  =====> 配置完成" 
+echo -e "${BLUE_COLOR}操作系统用户用户均具有口令${GREEN_COLOR}  =====> 配置完成"
 exit 0
-
