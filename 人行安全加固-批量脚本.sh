@@ -51,36 +51,36 @@ fi
 
 echo -e "\t\t\t========== 密码口令应在8位及以上 ============"
 if grep -q "^minlen" /etc/security/pwquality.conf; then
-  echo -e "${BLUE_COLOR}配置已存在/etc/security/pwquality.conf文件中${BLUE_COLOR}"
+  echo -e "${BLUE_COLOR}配置:密码口令应在8位及以上已存在/etc/security/pwquality.conf文件中${BLUE_COLOR}"
 else
   authconfig --passminlen=8 --update
-  echo -e "${GREEN_COLOR} 配置已经添加 to /etc/security/pwquality.conf =====> 配置完成 ${GREEN_COLOR} "
+  echo -e "${GREEN_COLOR} 配置:密码口令应在8位及以上已经添加 to /etc/security/pwquality.conf =====> 配置完成 ${GREEN_COLOR} "
 fi
 
 echo -e "\t\t\t========== 密码包括数字、小写字母、大写字母和特殊符号4类中至少3类 ============"
 # 配置:最小数字长度
-if grep -q "^dcredit" /etc/security/pwquality.conf; then
+if grep -q "dcredit  = -1" /etc/security/pwquality.conf; then
   echo -e "${BLUE_COLOR}配置:最小数字长度 已存在/etc/security/pwquality.conf文件中${BLUE_COLOR}"
 else
   authconfig --enablereqdigit --update
   echo -e "${GREEN_COLOR} 配置:最小数字长度 已经添加 to /etc/security/pwquality.conf =====> 配置完成 ${GREEN_COLOR} "
 fi
 # 配置:特殊符号
-if grep -q "^ocredit" /etc/security/pwquality.conf; then
+if grep -q "ocredit   = -1" /etc/security/pwquality.conf; then
   echo -e "${BLUE_COLOR}配置:特殊符号 已存在/etc/security/pwquality.conf文件中${BLUE_COLOR}"
 else
   authconfig --enablereqother --update
   echo -e "${GREEN_COLOR} 配置:特殊符号 已经添加 to /etc/security/pwquality.conf =====> 配置完成 ${GREEN_COLOR} "
 fi
 # 配置:至少一个小写字母
-if grep -q "^lcredit" /etc/security/pwquality.conf; then
+if grep -q "lcredit    = -1" /etc/security/pwquality.conf; then
   echo -e "${BLUE_COLOR}配置:至少一个小写字母 已存在/etc/security/pwquality.conf文件中${BLUE_COLOR}"
 else
-  authconfig --enablereqlowerr --update
+  authconfig --enablereqlower --update
   echo -e "${GREEN_COLOR} 配置:至少一个小写字母 已经添加 to /etc/security/pwquality.conf =====> 配置完成 ${GREEN_COLOR} "
 fi
 # 配置: 至少一个大写字母
-if grep -q "^ucredit" /etc/security/pwquality.conf; then
+if grep -q "ucredit     = -1" /etc/security/pwquality.conf; then
   echo -e "${BLUE_COLOR}配置:至少一个大写字母 已存在/etc/security/pwquality.conf文件中${BLUE_COLOR}"
 else
   authconfig --enablerequpper --update
@@ -168,7 +168,7 @@ else
   echo -e "${GREEN_COLOR} 配置:添加rotocol version to 2 在sshd_config文件 =====> 配置完成${GREEN_COLOR} "
 fi
 
-echo -e "\t\t\t========== 配置某些关键目录其所需的最小权限;  ============"
+echo -e "\t\t\t========== 配置某些关键目录其所需的最小权限============"
 echo -e "\t\t\t========== 重点要求passwd、group、crontabs、xhost文件权限  ============"
 #检查/etc/passwd 最小权限
 if [ $(stat -c "%a" /etc/passwd) -eq 644 ]; then
@@ -214,13 +214,13 @@ else
   chmod 644 /var/run/utmp
   echo -e "${GREEN_COLOR}  /var/run/utmp  权限设置为 644 ${GREEN_COLOR}  =====> 配置完成"
 fi
-#检查/ /var/log/wtpm权限
-if [ $(stat -c "%a" /var/log/wtpm) -eq 644 ]; then
-  echo -e "${BLUE_COLOR}/var/log/wtpm  权限正确${BLUE_COLOR}"
-else
-  chmod 644 / /var/log/wtpm
-  echo -e "${GREEN_COLOR} /var/log/wtpm  权限设置为 644  =====> 配置完成${GREEN_COLOR} "
-fi
+# #检查/ /var/log/wtpm权限,此文件默认在系统中不存在
+# if [ $(stat -c "%a" /var/log/wtpm) -eq 644 ]; then
+#   echo -e "${BLUE_COLOR}/var/log/wtpm  权限正确${BLUE_COLOR}"
+# else
+#   chmod 644 / /var/log/wtpm
+#   echo -e "${GREEN_COLOR} /var/log/wtpm  权限设置为 644  =====> 配置完成${GREEN_COLOR} "
+# fi
 
 echo -e "\t\t\t========== 禁止在控制台直接按ctl-alt-del重新启动计算机 ============"
 if [ -f /usr/lib/systemd/system/ctrl-alt-del.target ]; then
@@ -301,10 +301,10 @@ USERS=$(cut -d: -f1 /etc/passwd)
 # 循环检查每个用户是否具有口令
 for USER in $USERS; do
   PASSWORD_STATUS=$(passwd -S $USER | awk '{print $2}')
-  if [ "$PASSWORD_STATUS" != "P" ]; then
+  if [ "$PASSWORD_STATUS" != "PS" ]; then
     echo "用户 $USER 没有口令."
-    exit 1
+  else
+    echo -e "${GREEN_COLOR}用户 $USER 用户具有口令${GREEN_COLOR}"
   fi
 done
-echo -e "${BLUE_COLOR}操作系统用户用户均具有口令${GREEN_COLOR}  =====> 配置完成"
-exit 0
+
