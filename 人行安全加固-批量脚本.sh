@@ -3,7 +3,7 @@
 ##---------- Github page : https://github.com/alexdu828/linux-shell-script-------------------##
 ##---------- Purpose : System security reinforcement script.---------------------------------##
 ##---------- Tested on : CentOS--------------------------------------------------------------##
-##---------- Updated version : v0.2 (Updated on  2023年03月07) -------------------------------##
+##---------- Updated version : v0.8 (Updated on  2023年03月07) -------------------------------##
 ##-----NOTE: This script requires root privileges, otherwise one could run the script -------##
 ##---- as a sudo user who got root privileges. ----------------------------------------------##
 ##----------- "sudo /bin/bash <ScriptName>" -------------------------------------------------##
